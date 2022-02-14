@@ -1,3 +1,7 @@
+
+# ignore following directories
+/atomic2020_data-feb2021/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
