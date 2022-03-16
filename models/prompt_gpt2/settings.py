@@ -36,8 +36,9 @@ def get_args():
                         help=f"one of {METHODS}")
     parser.add_argument('--soft_len', type=int, default=100,
                         help = "number of soft token used in building continuous prompt templates")
-
+    parser.add_argument('--use_special_token', action='store_true', help= "use special_token to represent relation")
     
+
     parser.add_argument('--do_train', action='store_true')
     parser.add_argument('--do_pred', action= 'store_true')
     parser.add_argument('--n_shot', type=int, default=None, 
