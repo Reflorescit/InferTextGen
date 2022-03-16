@@ -99,8 +99,6 @@ def promptTuning_template_str(soft_len):
     }
     return re
 
-
-
 def mix_template_str():
     head = "{'placeholder': 'text_a'}"
     mask = "{'mask'}"
@@ -134,33 +132,15 @@ def mix_template_str():
     }
     return re
 
+
+
+
+
+
+
+
 if __name__ == "__main__":
     re = soft_template_str()
     for k in re.keys():
         print("{}: {}".format(k, re[k]))
 
-    # re =  {
-    #     "AtLocation": '{{"soft": You are likely to find}} {} {} in {} {}'.format(art_h, head, art_t, mask),
-    #     "CapableOf": '{} can {}'.format(head, mask),
-    #     "Causes": "Sometimes {} causes {}".format(head, mask),
-    #     "Desires": "{} {} desires {}".format(art_h, head, mask),
-    #     "HasProperty": "{} is {}".format(head, mask),
-    #     "HasSubEvent": "While {}, you would {}".format(vp, mask),
-    #     "HinderedBy": "{}. This would not happen if {}".format(head, mask),
-    #     "MadeUpOf": "{} {} contains {}".format(art_h, head, mask),
-    #     "NotDesires": "{} {} does not desire {}".format(art_h, head, mask),
-    #     "ObjectUse": "{} {} can be used for {}".format(art_h, head, mask),
-    #     "isAfter": "{}. Before that, {}".format(head, mask),
-    #     "isBefore": "{}. After that, {}".format(head, mask),
-    #     "isFilledBy": "{} is filled by {}".format(head, mask),
-    #     "oEffect": "{}. The effect on others will be {}".format(head, mask),
-    #     "oReact": "{}. As a result, others feel {}".format(head, mask),
-    #     "oWant": "{}. After, others will want to {}".format(head, mask),
-    #     "xAttr": "{}. PersonX is {}".format(head, mask),
-    #     "xEffect": "{}. The effect on PersonX will be {}".format(head, mask),
-    #     "xIntent": "{}. PersonX did this to {}".format(head, mask),
-    #     "xNeed": "{}. Before, PersonX needs to {}".format(head, mask),
-    #     "xReact": "{}. PersonX will be {}".format(head, mask),
-    #     "xReason": "{}. PersonX did this because {}".format(head, mask),
-    #     "xWant": "{}. After, PersonX will want to {}".format(head, mask)
-    # }

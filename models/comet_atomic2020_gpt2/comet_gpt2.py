@@ -2,7 +2,6 @@
 import numpy as np
 import pandas as pd
 from pandas.core.frame import DataFrame
-from thinc.config import Config
 import torch
 from torch import random
 from torch.nn import parallel
@@ -64,8 +63,8 @@ RELATIONS = ['ObjectUse', 'AtLocation', 'MadeUpOf', 'HasProperty', 'CapableOf', 
              'xNeed', 'xAttr', 'xEffect', 'xReact', 'xWant', 'xIntent', 'oEffect', 'oReact', 'oWant']
 # EXTRA_RELS = ["gEffect", "gReact", "gWant"]
 
-# FEW_SHOT_RELATIONS = []
-FEW_SHOT_RELATIONS = ['MadeUpOf', 'NotDesires', 'xReason', 'isBefore', 'xReact', 'oWant']
+FEW_SHOT_RELATIONS = []
+# FEW_SHOT_RELATIONS = ['MadeUpOf', 'NotDesires', 'xReason', 'isBefore', 'xReact', 'oWant']
 # FEW_SHOT_RELATIONS = ['ObjectUse', 'CapableOf', 'AtLocation', 'xAttr']
 
 trn_data_path = '../../atomic2020_data-feb2021/train.tsv'
@@ -176,12 +175,12 @@ def main():
     config.IN_LEN = int(os.environ.get("IN_LEN", 48))
     config.OUT_LEN = int(os.environ.get("OUT_LEN", 64))
     config.SUMMARY_LEN = 0 # Used for t5
-    config.OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "./output/")
-    config.OUTPUT_NAME = os.environ.get("OUTPUT_NAME", "output.jsonl")
+    config.OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "../../output/")
+    config.OUTPUT_NAME = os.environ.get("OUTPUT_NAME", "comet_output.jsonl")
     config.MODEL_SAVE_DIR = os.environ.get("MODEL_SAVE_PATH", "./models/")
     config.DO_TRAIN = os.environ.get("DO_TRAIN", "False") == "True"
     config.DO_PRED = os.environ.get("DO_PRED", "True") == "True"
-    config.PRED_FILE = str(os.environ.get("PRED_FILE", "../../atomic2020_data-feb2021/fewshot_test1.tsv"))
+    config.PRED_FILE = str(os.environ.get("PRED_FILE", "../../atomic2020_data-feb2021/sampled_test.tsv"))
     config.TOP_K = int(os.environ.get("TOP_K", 40)) 
     config.PRED_BATCH = 64
     config.TOKENIZER = os.environ.get('TOKENIZER', "gpt2-xl")
@@ -191,11 +190,12 @@ def main():
     config.EXTRA_RELS = os.environ.get('EXTRA_RELS', "False") == "True"
     config.N_SHOT = int(os.environ.get("N_SHOT", 10))
 
-    if config.DO_FEWSHOT:
-        d = dict(config)
-        d['USE_PROMPT'] = True
-        d['DO_PRED'] = False
-        config.update(d, allow_val_change=True)
+
+    # if config.DO_FEWSHOT:
+    #     d = dict(config)
+    #     d['USE_PROMPT'] = True
+    #     d['DO_PRED'] = False
+    #     config.update(d, allow_val_change=True)
 
     logger.info(config)
     torch.manual_seed(config.SEED)  # pytorch random seed
@@ -267,7 +267,7 @@ def main():
     tokenizer.add_special_tokens({'eos_token': '[EOS]','pad_token': '[PAD]', 'additional_special_tokens': ['GEN']})
     
     logging.info("Loading model from {}".format(model_name))
-    model = GPT2LMHeadModel.from_pretrained(model_name)
+    model = GPT2LMHeadModel.from_pretrained(model_name, pad_token_id=tokenizer.eos_token_id)
     model.resize_token_embeddings(len(tokenizer))
 
     if use_parallel and not (not config.DO_TRAIN and config.DO_PRED):
@@ -355,7 +355,8 @@ def main():
     if config.DO_FEWSHOT:
         # finetune model on few-shot relations
         assert FEW_SHOT_RELATIONS != [], "FEW_SHOT_RELATIONS should not be empty if want to do few-shot tuning"
-        trn_data_path = prompt_trn_path  
+        if config.USE_PROMPT:
+            trn_data_path = prompt_trn_path  
         train_data = pd.read_csv(os.environ.get('TRAIN_DATA_PATH', trn_data_path), encoding='latin-1', sep="\t")
         train_dataset = pd.DataFrame()
         for rel in FEW_SHOT_RELATIONS:
@@ -386,6 +387,7 @@ def main():
 
         write_items(os.path.join(config.OUTPUT_DIR, config.OUTPUT_NAME),
                     [json.dumps(r) for r in pred_generations])
+        return
 
 
     if config.DO_PRED:

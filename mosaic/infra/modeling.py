@@ -75,7 +75,8 @@ def train(epoch, tokenizer, model, device, loader, optimizer, val_loader=None, m
 
 
         # if iteration % 1000 == 0 and val_loader != None:
-        #     log_eval(epoch, tokenizer, model, device, val_loader, model_class=model_class)
+        #     # log_eval(epoch, tokenizer, model, device, val_loader, model_class=model_class)
+        #     validate(epoch, tokenizer, model, device,val_loader)
         #     model.train()
 
 
@@ -84,6 +85,8 @@ def validate(epoch, tokenizer, model, device, loader):
     predictions = []
     actuals = []
     sources = []
+
+    logger.info(f"val set size: {len(loader)}")
     with torch.no_grad():
         for _, data in enumerate(loader, 0):
             y = data['target_ids'].to(device, dtype=torch.long)
@@ -94,7 +97,8 @@ def validate(epoch, tokenizer, model, device, loader):
                 input_ids=ids,
                 attention_mask=mask,
                 do_sample=True,
-                max_length=int(os.environ['OUT_LEN']),
+                # max_length=int(os.environ['OUT_LEN']),
+                max_length = len(ids[0])+10,
                 num_beams=5,
                 top_k=50,
                 top_p=0.95
@@ -109,6 +113,9 @@ def validate(epoch, tokenizer, model, device, loader):
             source = [
                 tokenizer.decode(s, skip_special_tokens=True, clean_up_tokenization_spaces=True) for
                 s in ids]
+            
+            # if _ % 20 == 0:
+            #     logger.info(f'source: {source} \n target: {target} \n pred: {preds}')
 
             if _ % 100 == 0:
                 logger.info(f'Completed {_}')

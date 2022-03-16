@@ -1,6 +1,8 @@
 
 # ignore following directories
 /atomic2020_data-feb2021/
+/models/prompt_gpt2/prompt_encoders/
+/output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
