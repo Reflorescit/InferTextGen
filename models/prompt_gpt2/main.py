@@ -65,7 +65,7 @@ def init_template(method, plm, tokenizer, soft_len=0, rel=None):
         return soft_tkn_template
 
     soft = "{'soft': ''}"
-    prompt = "{'meta': 'prompt'}"
+    prompt = "{'placeholder':'text_a'}"
     mask = "{'mask'}"
     if method == "manual":
         text = manual_template_str()[rel]
@@ -242,7 +242,7 @@ def run_generation(args, prompt_model, dataloader, pred_dataset, tokenizer):
             item = {
                     'generation': generation,
                     'references': [t.strip() for t in inputs['tgt_text'][i].strip('\n').split('|')],
-                    'input': {'head': pred_dataset[data_idx].text_a, 'relation': pred_dataset[data_idx].text_b, 'prompt': prompt}
+                    'input': {'head': pred_dataset[data_idx].meta['head'], 'relation': pred_dataset[data_idx].meta['tail'], 'prompt': prompt}
                 }
             re.append(item)
             data_idx += 1
@@ -386,8 +386,8 @@ def main():
         # for rel in RELATIONS:
             # args.rel = rel
         logger.info(f"loading pred data...")
-        do_analysis = (args.method == 'manual' or args.method == 'soft')
-        pred_dataset = PromptDatasetProcessor().get_examples(pred_data_path, analysis=do_analysis, skip_none=False)
+        # do_analysis = (args.method == 'manual' or args.method == 'soft')
+        pred_dataset = PromptDatasetProcessor().get_examples(pred_data_path, analysis=True, skip_none=False)
 
         # pred_dataset = pred_dataset[:5]
 

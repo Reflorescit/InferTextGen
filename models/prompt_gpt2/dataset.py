@@ -45,16 +45,16 @@ class PromptDatasetProcessor(DataProcessor):
         if skip_none:
             data = data[data['tail_event']!='none']
         for idx, row in tqdm(data.iterrows(), total=len(data)):
-            text_a = row['head_event'].strip()
-            text_b = row['relation']
-            tgt_text = row['tail_event'].strip()
+            head = row['head_event'].strip()
+            relation = row['relation']
+            tail = row['tail_event'].strip()
             if analysis and 'prompt' not in data.columns:
-                meta = {'prompt': manual_prompt(kg='atomic2020', head=text_a, relation=text_b, tail=tgt_text)}
+                prompt = manual_prompt(kg='atomic2020', head=head, relation=relation, tail=tail)
             elif 'prompt' in data.columns:
-                meta = {'prompt': row['prompt']}
+                prompt = row['prompt']
             else:
-                meta= {}
-            examples.append(InputExample(guid=idx, text_a=text_a, text_b=text_b, tgt_text=tgt_text, meta=meta))
+                prompt = head + " " + relation
+            examples.append(InputExample(guid=idx, text_a=prompt, tgt_text=tail, meta={'head': head, "relation": relation}))
         print("len of dataset: ", len(data))
         return examples
 

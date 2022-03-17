@@ -1,4 +1,3 @@
-CUDA_VISIBLE_DEVICES=5 \
 python main.py \
 --name prefix100_none \
 --method prefixTuning \
@@ -9,6 +8,6 @@ python main.py \
 --prompt_save_name none_prefix100_prompt.pkl \
 --output_file_name none_preifx100_gen.jsonl \
 --n_shot 19200 \
---lr 0.3 \
+--lr 5e-5 \
 --early_stop 10 \
 --log
