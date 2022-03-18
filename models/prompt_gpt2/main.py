@@ -18,10 +18,9 @@ from transformers import GPT2Tokenizer, GPT2Model, GPT2LMHeadModel, T5Tokenizer,
 from transformers.optimization import get_linear_schedule_with_warmup, get_constant_schedule_with_warmup
 
 
-from OpenPrompt.openprompt.plms import load_plm
-from OpenPrompt.openprompt.prompts import ManualTemplate, SoftTemplate, MixedTemplate, PrefixTuningTemplate
-from OpenPrompt.openprompt import PromptDataLoader
-from OpenPrompt.openprompt import PromptForGeneration
+from openprompt.plms import load_plm
+from openprompt import PromptDataLoader
+from openprompt import PromptForGeneration
 
 import os
 from tqdm import tqdm
@@ -33,8 +32,8 @@ import sys
 sys.path.append('..')
 sys.path.append('../..')
 
-from prompts import manual_template_str, promptTuning_template_str 
-from dataset import PromptDatasetProcessor
+from prompts import init_template, load_prompt_enoder, save_prompt_encoder
+from dataset import PromptDatasetProcessor, proc_dataloader
 from settings import *
 
 
@@ -53,48 +52,7 @@ def write_items(items: List[str], output_file):
             f.write(str(item) + "\n")
     f.close()
 
-def init_template(method, plm, tokenizer, soft_len=0, rel=None):
-    def init_from_vocab():
-        """initialize soft tokens from most frequent word-pieces in plm's vocab"""
-        bpe_lst = [tu[0] for tu in sorted(tokenizer.bpe_ranks.items(), key=lambda kv:kv[1])[:soft_len]]
-        wps_lst = ["".join(bpe).replace("Ġ", " ").replace("'", "\'") for bpe in bpe_lst]
-        soften = lambda text : f'{{"soft": "{text}"}}'
-        soft_tkn_template = ""
-        for wps in wps_lst:
-            soft_tkn_template += soften(wps)
-        return soft_tkn_template
 
-    soft = "{'soft': ''}"
-    prompt = "{'placeholder':'text_a'}"
-    mask = "{'mask'}"
-    if method == "manual":
-        text = manual_template_str()[rel]
-        logger.info("init manual template: {}".format(text))
-        return ManualTemplate(tokenizer=tokenizer, text=text)
-    elif method == 'soft':
-        # text = promptTuning_template_str(soft_len)[rel]
-        soft_tkn_template = init_from_vocab()
-        text = f"{soft_tkn_template} {prompt} {mask}"
-        logger.info("init prompt-tuning template: {}".format(text))
-        return MixedTemplate(model=plm, tokenizer=tokenizer, text=text)
-    elif method == "prefixTuning":
-        logger.info("init prfix-tuning template with {} soft tokens".format(soft_len))
-        return PrefixTuningTemplate(model=plm, tokenizer=tokenizer, num_token=soft_len)
-
-
-def save_prompt_encoder(template, path):
-    dir_ = os.path.dirname(path)
-    if not os.path.exists(dir_):
-        os.makedirs(dir_)
-    with open(path, 'wb') as f:
-        pickle.dump(template, f)
-    logger.info(f'save prompt encoder to {path}')
-
-def load_prompt_enoder(path):
-    with open(path, 'rb') as f:
-        template = pickle.load(f)
-    logger.info(f"load prompt encoder from {path}")
-    return template
 
 def evaluate(prompt_model, data_loader):
     tot_loss = 0
@@ -188,14 +146,7 @@ def prompt_train(args, prompt_model, trn_loader, val_loader, tst_loader, tokeniz
         
 
     
-def proc_dataloader(data_loader, input_len):
-    cnt = 0
-    for idx, tensor_data in tqdm(enumerate(data_loader.tensor_dataset), total=len(data_loader.tensor_dataset)):
-        if len(tensor_data['input_ids']) > input_len:
-            data_loader.wrapped_dataset.pop(idx)
-            data_loader.tensor_dataset.pop(idx)
-            cnt += 1
-    logger.info("dropped {} data".format(cnt))
+
 
 
 def postprocess(text, stop_token):
@@ -242,7 +193,7 @@ def run_generation(args, prompt_model, dataloader, pred_dataset, tokenizer):
             item = {
                     'generation': generation,
                     'references': [t.strip() for t in inputs['tgt_text'][i].strip('\n').split('|')],
-                    'input': {'head': pred_dataset[data_idx].meta['head'], 'relation': pred_dataset[data_idx].meta['tail'], 'prompt': prompt}
+                    'input': {'head': pred_dataset[data_idx].text_a, 'relation': pred_dataset[data_idx].text_b, 'prompt': prompt}
                 }
             re.append(item)
             data_idx += 1
@@ -337,7 +288,7 @@ def main():
                                             batch_size=args.batch_size, shuffle=True, teacher_forcing=True, predict_eos_token=True,
                                             truncate_method="head")
             proc_dataloader(trn_dataloader, args.input_len)
-            # logger.info("wrapped train example: {}".format(trn_dataloader.wrapped_dataset[0]))
+            logger.info("wrapped train example: {}".format(trn_dataloader.wrapped_dataset[0]))
 
             with open(cache_path, 'wb') as f:
                 pickle.dump(trn_dataloader, f)

@@ -1,3 +1,19 @@
+import sys
+import os
+import pickle
+
+from OpenPrompt.openprompt.prompts import ManualTemplate, SoftTemplate, MixedTemplate, PrefixTuningTemplate
+
+
+import logging
+logger = logging.getLogger()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        ]
+    )
 
 
 def manual_template_str():
@@ -133,7 +149,49 @@ def mix_template_str():
     return re
 
 
+def init_template(method, plm, tokenizer, soft_len=0, rel=None):
+    def init_from_vocab():
+        """initialize soft tokens from most frequent word-pieces in plm's vocab"""
+        bpe_lst = [tu[0] for tu in sorted(tokenizer.bpe_ranks.items(), key=lambda kv:kv[1])[:soft_len]]
+        wps_lst = ["".join(bpe).replace("Ġ", " ").replace("'", "\'") for bpe in bpe_lst]
+        soften = lambda text : f'{{"soft": "{text}"}}'
+        soft_tkn_template = ""
+        for wps in wps_lst:
+            soft_tkn_template += soften(wps)
+        return soft_tkn_template
 
+    soft = "{'soft': ''}"
+    prompt = "{'meta':'prompt'}"
+    mask = "{'mask'}"
+    if method == "manual":
+        text = manual_template_str()[rel]
+        logger.info("init manual template: {}".format(text))
+        return ManualTemplate(tokenizer=tokenizer, text=text)
+    elif method == 'soft':
+        # text = promptTuning_template_str(soft_len)[rel]
+        soft_tkn_template = init_from_vocab()
+        text = f"{soft_tkn_template} {prompt} {mask}"
+        logger.info("init prompt-tuning template: {}".format(text))
+        return MixedTemplate(model=plm, tokenizer=tokenizer, text=text)
+    elif method == "prefixTuning":
+        logger.info("init prfix-tuning template with {} soft tokens".format(soft_len))
+        text = f"{prompt} {mask}"
+        return PrefixTuningTemplate(model=plm, tokenizer=tokenizer, num_token=soft_len, text = text)
+
+
+def save_prompt_encoder(template, path):
+    dir_ = os.path.dirname(path)
+    if not os.path.exists(dir_):
+        os.makedirs(dir_)
+    with open(path, 'wb') as f:
+        pickle.dump(template, f)
+    logger.info(f'save prompt encoder to {path}')
+
+def load_prompt_enoder(path):
+    with open(path, 'rb') as f:
+        template = pickle.load(f)
+    logger.info(f"load prompt encoder from {path}")
+    return template
 
 
 

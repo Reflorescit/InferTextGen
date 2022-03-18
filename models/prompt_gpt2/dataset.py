@@ -18,6 +18,17 @@ sys.path.append('../')
 sys.path.append('../..')
 from gpt2_zeroshot.gpt2_zeroshot import manual_prompt
 
+import logging
+logger = logging.getLogger()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        ]
+    )
+
+
 class PromptDatasetProcessor(DataProcessor):
     def __init__(self):
         super().__init__()
@@ -45,16 +56,25 @@ class PromptDatasetProcessor(DataProcessor):
         if skip_none:
             data = data[data['tail_event']!='none']
         for idx, row in tqdm(data.iterrows(), total=len(data)):
-            head = row['head_event'].strip()
-            relation = row['relation']
-            tail = row['tail_event'].strip()
+            text_a = row['head_event'].strip()
+            text_b = row['relation']
+            tgt_text = row['tail_event'].strip()
             if analysis and 'prompt' not in data.columns:
-                prompt = manual_prompt(kg='atomic2020', head=head, relation=relation, tail=tail)
+                meta = {'prompt': manual_prompt(kg='atomic2020', head=text_a, relation=text_b, tail=tgt_text)}
             elif 'prompt' in data.columns:
-                prompt = row['prompt']
+                meta = {'prompt': row['prompt']}
             else:
-                prompt = head + " " + relation
-            examples.append(InputExample(guid=idx, text_a=prompt, tgt_text=tail, meta={'head': head, "relation": relation}))
+                meta= {}
+            examples.append(InputExample(guid=idx, text_a=text_a, text_b=text_b, tgt_text=tgt_text, meta=meta))
         print("len of dataset: ", len(data))
         return examples
 
+
+def proc_dataloader(data_loader, input_len):
+    cnt = 0
+    for idx, tensor_data in tqdm(enumerate(data_loader.tensor_dataset), total=len(data_loader.tensor_dataset)):
+        if len(tensor_data['input_ids']) > input_len:
+            data_loader.wrapped_dataset.pop(idx)
+            data_loader.tensor_dataset.pop(idx)
+            cnt += 1
+    logger.info("dropped {} data".format(cnt))

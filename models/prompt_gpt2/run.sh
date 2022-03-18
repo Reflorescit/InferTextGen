@@ -1,12 +1,12 @@
 python main.py \
---name prefix100_none \
+--name prefix100 \
 --method prefixTuning \
 --soft_len 100 \
 --do_train \
 --do_pred \
---prompt_load_path ./prompt_encoders/none_prefix100_prompt.pkl \
---prompt_save_name none_prefix100_prompt.pkl \
---output_file_name none_preifx100_gen.jsonl \
+--prompt_load_path ./prompt_encoders/prefix100_prompt.pkl \
+--prompt_save_name prefix100_prompt.pkl \
+--output_file_name preifx100_gen.jsonl \
 --n_shot 19200 \
 --lr 5e-5 \
 --early_stop 10 \
